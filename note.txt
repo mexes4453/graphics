@@ -1,11 +1,25 @@
+--------
 LINKS
+--------
 + Learning modern 3D Graphics Programming -- https://paroj.github.io/gltut/index.html
-+ Ray tracing - https://github.com/RayTracing/raytracing.github.io
++ Ray tracing   - https://github.com/RayTracing/raytracing.github.io
++ opengl series - https://www.youtube.com/playlist?list=PLvv0ScY6vfd9zlZkIIqGDeG5TUWswkMox
++ 
++ Documentation - https://docs.gl */
+
+
+
+--------
+COMMANDS
+--------
+01. $ sudo apt-get install opengl-4-man-doc         : Install opengl man page
+
 
 
 GRAPHIC PIPELINE
 VERTEX SPECIFICATION >> VERTEX SHADER >> TESSELLATION >> GEOMETRY SHADER
 
+------
 SHADER
 ------
 It is a programmable part of the graphics pipeline that enables one to write programs

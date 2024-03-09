@@ -33,7 +33,7 @@ USR_LIB_PRINTF = libftprintf.a
 USR_LIB_PATH_PRINTF= ./ft_printf
 
 # FLAGS
-CFLAGS = -Werror -Wall -Wextra -g -pthread -lrt -lSDL2 -ldl #-std=$(STD) 
+CFLAGS = -Werror -Wall -Wextra -g -pthread -lrt -lSDL2 -ldl -lGL#-std=$(STD) 
 LIBFLAGS_STATIC = #-L$(USR_LIB_PATH_PRINTF) -lftprintf
 #CFLAGS += -D__thread__
 
