@@ -6,6 +6,7 @@ LINKS
 + opengl series - https://www.youtube.com/playlist?list=PLvv0ScY6vfd9zlZkIIqGDeG5TUWswkMox
 + 
 + Documentation - https://docs.gl */
++ OpenGL Loader - https://glad.dav1d.de/
 
 
 

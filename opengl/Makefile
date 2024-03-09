@@ -8,12 +8,14 @@ DIR_PROJECT = $(shell pwd)
 DIR_OBJ = $(DIR_PROJECT)/obj
 DIR_DEP = $(DIR_PROJECT)/dep
 
-SRCS:= main.cpp
+SRCS_CPP:= main.cpp
+SRCS_C:= src/glad.c
 
-OBJ_FILES:= $(SRCS:.cpp=.o)
-OBJS := $(patsubst %, $(DIR_OBJ)/%, $(OBJ_FILES))
+OBJ_FILES:= $(SRCS_CPP:.cpp=.o) $(SRCS_C:.c=.o)
 $(info $(OBJ_FILES))
-$(info $(OBJS))
+OBJS := $(patsubst %, $(DIR_OBJ)/%, $(OBJ_FILES))
+#$(info $(OBJ_FILES))
+#$(info $(OBJS))
 
 
 DEP_FILES:= $(OBJS:.o=.d)
@@ -22,9 +24,10 @@ DEPS := $(patsubst %, $(DIR_DEP)/%, $(OBJ_FILES))
 MSG = 
 REP = mexes
 
-NAME = graphics.out
+NAME = prog.out
 
 CC = g++
+GCC = gcc
 STD = c++98
 DEBUG = 
 VALGRIND =
@@ -61,7 +64,7 @@ $(NAME) : $(OBJS)
 	@echo; echo
 
 
--include $(DEP_FILES)
+-include $(DEPS)
 
 # obj files output
 $(DIR_OBJ)/%.o : %.cpp
@@ -71,6 +74,17 @@ $(DIR_OBJ)/%.o : %.cpp
 	@echo "\033[1;33mCompiling OBJ files \033[0m"
 	$(CC) -c $^ $(CFLAGS) $(INCLUDES) -o $@
 	$(CC) -MM $^ $(CFLAGS) $*.cpp -o $*.d
+	@mv $*.d $(DIR_DEP)
+
+# obj files output
+$(DIR_OBJ)/%.o : %.c
+	@mkdir -p $(dir $@) 
+	@mkdir -p $(DIR_DEP) 
+	@echo
+	@echo "\033[1;33mCompiling OBJ files \033[0m"
+	$(GCC) -c $^ $(CFLAGS) $(INCLUDES) -o $@
+	$(GCC) -MM $^ $(CFLAGS) $*.c -o $*.d
+	@mv $*.d $(DIR_DEP)
 #	@mv *.d $(DIR_DEP)
 	@echo
 

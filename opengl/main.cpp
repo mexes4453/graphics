@@ -1,9 +1,11 @@
 #include <SDL2/SDL.h>
-#include <GL/gl.h>
+// #include <GL/gl.h>
+#include "include/glad/glad.h"
+#include <vector>
 #include <iostream>
 
 /* for documentation - https://docs.gl */
-/* MACRO DEFINITIONS */
+/* MACRO DEFInitIONS */
 #define COL_BLUE "\033[0;34m"
 #define COL_RED "\033[0;31m"
 #define COL_GREEN "\033[0;32m"
@@ -22,15 +24,37 @@
 #define CERR std::cerr
 #define ENDL std::endl
 #define APP_TITLE ("OpenGL App")
-#define WIN_HEIGHT (800)
-#define WIN_WIDTH (600)
+#define WIN_HEIGHT (480)
+#define WIN_WIDTH (640)
 
 /* Global variables */
-SDL_Window   *g_pAppWin = nullptr;
+SDL_Window *g_pAppWin = nullptr;
 SDL_GLContext g_pOpenGlContext = nullptr;
-bool          gQuit = false;
+bool g_Quit = false;
+GLuint g_vertexArrayObject = 0;     // VAO
+GLuint g_vertexBufferObject = 0;    // VBO
+GLuint g_pipelineShaderProgram = 0; // handle to shader program
 
-/* Function definitions */
+const std::string g_vertexShaderSrc =
+    "#version 410 core \n"
+    "in vec4 position;\n"
+    "void main()\n"
+    "{\n"
+    "    gl_Position = vec4(position.x, position.y, position.z, position.w);\n"
+    "}\n";
+
+const std::string g_fragmentShaderSrc =
+    "#version 410 core \n"
+    "out vec4 color;\n"
+    "void main()\n"
+    "{\n"
+    "    color = vec4(1.0f, 0.5f, 0.0f, 1.0f);\n"
+    "}\n";
+
+/*-------------------------------------------------------------------------*/
+/*                        Function defInitions                             */
+/*-------------------------------------------------------------------------*/
+
 void getOpenGlVersionInfo(void)
 {
     COUT << "VENDOR: " << glGetString(GL_VENDOR) << ENDL;
@@ -39,9 +63,85 @@ void getOpenGlVersionInfo(void)
     COUT << "SHADING LANG: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << ENDL;
 }
 
+void VertexSpecification(void)
+{
+    /* Created and stored on the CPU */
+    const std::vector<GLfloat> vertexPos = {
+        /* x     y     z   */
+        -0.8, -0.8, 0.5, // vertex 1
+        0.8, -0.8, 0.0,  // vertex 2
+        0.0, 0.8, 0.0    // vertex 3
+    };
 
+    /* Generate the vertex array object */
+    glGenVertexArrays(1, &g_vertexArrayObject);
+    glBindVertexArray(g_vertexArrayObject);
 
-void init(void)
+    /* Generate the buffer object */
+    glGenBuffers(1, &g_vertexBufferObject);
+    glBindBuffer(GL_ARRAY_BUFFER, g_vertexBufferObject);
+
+    /* copy the data (vertexPos)from cpu to gpu (vertexbufferObject)*/
+    glBufferData(GL_ARRAY_BUFFER,
+                 vertexPos.size() * sizeof(GLfloat),
+                 vertexPos.data(),
+                 GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0,        /* Corresponds to the enabledvertexAttribArray */
+                          3,        /* Number of components 3 vertices             */
+                          GL_FLOAT, /* type : data type - float                    */
+                          GL_FALSE, /* Is the data normalised                      */
+                          0,        /* stride                                      */
+                          NULL);    /* offset                                      */
+
+    /* Disable used objects */
+    glBindVertexArray(0);
+    glDisableVertexAttribArray(0);
+}
+
+GLuint compileShader(GLuint type, const std::string &sourceCode)
+{
+    GLuint shaderObj;
+    const char *src = sourceCode.c_str();
+
+    /* Create the shader object handle for compilation */
+    if (type == GL_VERTEX_SHADER)
+    {
+        shaderObj = glCreateShader(GL_VERTEX_SHADER);
+    }
+    else if (type == GL_FRAGMENT_SHADER)
+    {
+        shaderObj = glCreateShader(GL_FRAGMENT_SHADER);
+    }
+    /* compile the shader program */
+    glShaderSource(shaderObj, 1, &src, nullptr);
+    glCompileShader(shaderObj);
+    return (shaderObj);
+}
+
+GLuint createShaderProgram(const std::string &vertexShader,
+                           const std::string &fragmentShader)
+{
+    GLuint programObj = glCreateProgram();
+    GLuint vertex_shader = compileShader(GL_VERTEX_SHADER, vertexShader);
+    GLuint fragment_shader = compileShader(GL_FRAGMENT_SHADER, fragmentShader);
+
+    glAttachShader(programObj, vertex_shader);
+    glAttachShader(programObj, fragment_shader);
+    glLinkProgram(programObj);
+    glValidateProgram(programObj);
+    return (programObj);
+}
+
+void createGraphicsPipeline(void)
+{
+    COUT << "before: " << g_pipelineShaderProgram << ENDL;
+    g_pipelineShaderProgram = createShaderProgram(g_vertexShaderSrc, g_fragmentShaderSrc);
+    COUT << "After: " << g_pipelineShaderProgram << ENDL;
+}
+
+void Init(void)
 {
     int retCode = 0;
 
@@ -60,8 +160,6 @@ void init(void)
     /* Set depth size to determine object distance from view or camera */
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
-
-
     /* Create the SDL window */
     g_pAppWin = SDL_CreateWindow(APP_TITLE,
                                  0, 0, WIN_WIDTH, WIN_HEIGHT,
@@ -71,12 +169,14 @@ void init(void)
     /* Create an open gl context */
     g_pOpenGlContext = SDL_GL_CreateContext(g_pAppWin);
     UTILS_ASSERT((g_pOpenGlContext != nullptr), "Error! SDL_GL_CreateContext failed")
-    
+
+    /* Initialise the GLAD library - This enables the use of openGL functions */
+    UTILS_ASSERT((gladLoadGLLoader(SDL_GL_GetProcAddress) == true),
+                 "Error! GLAD loader Init failed")
 
     /* Show openGL version information */
     getOpenGlVersionInfo();
 }
-
 
 void handleInputs(void)
 {
@@ -86,32 +186,63 @@ void handleInputs(void)
         if (e.type == SDL_QUIT)
         {
             std::cout << "Exiting application..." << std::endl;
-            gQuit = true;
+            g_Quit = true;
         }
     }
+}
 
+void preDraw()
+{
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+
+    glViewport(0, 0, WIN_WIDTH, WIN_HEIGHT);
+    glClearColor(1.f, 1.f, 0.1f, 1.f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glUseProgram(g_pipelineShaderProgram);
+}
+
+void Draw(void)
+{
+    glBindVertexArray(g_vertexArrayObject);
+    glBindBuffer(GL_ARRAY_BUFFER, g_vertexBufferObject);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
 }
 
 void mainloop(void)
 {
-    while (!gQuit)
+    while (!g_Quit)
     {
         handleInputs();
 
         /* predraw */
+        preDraw();
+
         /* update - draw  */
+        Draw();
+
+        /* update the screen */
+        SDL_GL_SwapWindow(g_pAppWin);
     }
 }
 
 void cleanup(void)
 {
     SDL_DestroyWindow(g_pAppWin);
+
+    /* Delete openGL objects */
+    glDeleteBuffers(1, &g_vertexBufferObject);
+    glDeleteVertexArrays(1, &g_vertexArrayObject);
+    glDeleteProgram(g_pipelineShaderProgram);
     SDL_Quit();
 }
 
 int main(void)
 {
-    init();
+    Init();
+    VertexSpecification();
+    createGraphicsPipeline();
     mainloop();
     cleanup();
 
