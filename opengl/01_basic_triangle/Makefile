@@ -5,15 +5,18 @@ COL_G = "\033[1;33m"
 COL_D = "\033[0m"
 
 DIR_PROJECT = $(shell pwd)
+DIR_SRC = $(DIR_PROJECT)/src
 DIR_OBJ = $(DIR_PROJECT)/obj
 DIR_DEP = $(DIR_PROJECT)/dep
 
-SRCS_CPP:= main.cpp
-SRCS_C:= src/glad.c
+SRCS_FILES_CPP:= main.cpp
+SRCS_FILES_C:= glad.c
 
-OBJ_FILES:= $(SRCS_CPP:.cpp=.o) $(SRCS_C:.c=.o)
+OBJ_FILES:= $(SRCS_FILES_CPP:.cpp=.o) $(SRCS_FILES_C:.c=.o)
 $(info $(OBJ_FILES))
 OBJS := $(patsubst %, $(DIR_OBJ)/%, $(OBJ_FILES))
+SRCS_C := $(patsubst %, $(DIR_SRC)/%, $(SRCS_FILES_C))
+SRCS_CPP := $(patsubst %, $(DIR_SRC)/%, $(SRCS_FILES_CPP))
 #$(info $(OBJ_FILES))
 #$(info $(OBJS))
 
@@ -43,7 +46,7 @@ LIBFLAGS_STATIC = #-L$(USR_LIB_PATH_PRINTF) -lftprintf
 DEPSFLAG =: -MM $($@:.o=.d)
 
 # INCLUDE
-INCLUDES = -I./ #-I$(USR_LIB_PATH_PRINTF) 
+INCLUDES = -I./ -I./inc #-I$(USR_LIB_PATH_PRINTF) 
 
 #=== DEBUG ====
 ifeq ($(DEBUG), 1)
@@ -67,23 +70,23 @@ $(NAME) : $(OBJS)
 -include $(DEPS)
 
 # obj files output
-$(DIR_OBJ)/%.o : %.cpp
+$(DIR_OBJ)/%.o : $(DIR_SRC)/%.cpp
 	@mkdir -p $(dir $@) 
 	@mkdir -p $(DIR_DEP) 
 	@echo
 	@echo "\033[1;33mCompiling OBJ files \033[0m"
 	$(CC) -c $^ $(CFLAGS) $(INCLUDES) -o $@
-	$(CC) -MM $^ $(CFLAGS) $*.cpp -o $*.d
+	$(CC) -MM $^ $(CFLAGS) -o $*.d
 	@mv $*.d $(DIR_DEP)
 
 # obj files output
-$(DIR_OBJ)/%.o : %.c
+$(DIR_OBJ)/%.o : $(DIR_SRC)/%.c
 	@mkdir -p $(dir $@) 
 	@mkdir -p $(DIR_DEP) 
 	@echo
 	@echo "\033[1;33mCompiling OBJ files \033[0m"
 	$(GCC) -c $^ $(CFLAGS) $(INCLUDES) -o $@
-	$(GCC) -MM $^ $(CFLAGS) $*.c -o $*.d
+	$(GCC) -MM $^ $(CFLAGS) -o $*.d
 	@mv $*.d $(DIR_DEP)
 #	@mv *.d $(DIR_DEP)
 	@echo

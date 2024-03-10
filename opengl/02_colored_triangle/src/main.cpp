@@ -1,28 +1,14 @@
 #include <SDL2/SDL.h>
 // #include <GL/gl.h>
-#include "include/glad/glad.h"
+#include "../inc/glad/glad.h"
+#include "../inc/utils.h"
 #include <vector>
 #include <iostream>
+#include <string>
+#include <fstream>
 
 /* for documentation - https://docs.gl */
 /* MACRO DEFInitIONS */
-#define COL_BLUE "\033[0;34m"
-#define COL_RED "\033[0;31m"
-#define COL_GREEN "\033[0;32m"
-#define COL_YELLOW "\033[0;33m"
-#define COL_MAGENTA "\033[0;35m"
-#define COL_DEFAULT "\033[0m"
-
-#define UTILS_ASSERT(condition, msg)                               \
-    if (!(condition))                                              \
-    {                                                              \
-        std::cerr << COL_RED << (msg) << COL_DEFAULT << std::endl; \
-        exit(EXIT_FAILURE);                                        \
-    }
-
-#define COUT std::cout
-#define CERR std::cerr
-#define ENDL std::endl
 #define APP_TITLE ("OpenGL App")
 #define WIN_HEIGHT (480)
 #define WIN_WIDTH (640)
@@ -34,22 +20,6 @@ bool g_Quit = false;
 GLuint g_vertexArrayObject = 0;     // VAO
 GLuint g_vertexBufferObject = 0;    // VBO
 GLuint g_pipelineShaderProgram = 0; // handle to shader program
-
-const std::string g_vertexShaderSrc =
-    "#version 410 core \n"
-    "in vec4 position;\n"
-    "void main()\n"
-    "{\n"
-    "    gl_Position = vec4(position.x, position.y, position.z, position.w);\n"
-    "}\n";
-
-const std::string g_fragmentShaderSrc =
-    "#version 410 core \n"
-    "out vec4 color;\n"
-    "void main()\n"
-    "{\n"
-    "    color = vec4(1.0f, 0.5f, 0.0f, 1.0f);\n"
-    "}\n";
 
 /*-------------------------------------------------------------------------*/
 /*                        Function defInitions                             */
@@ -95,13 +65,37 @@ void VertexSpecification(void)
                           0,        /* stride                                      */
                           NULL);    /* offset                                      */
 
-    /* Disable used objects */
+    /* Disable used objects VAO */
     glBindVertexArray(0);
     glDisableVertexAttribArray(0);
 }
 
+std::string LoadShaderSrcFile(const std::string &file_name)
+{
+    std::string result = "";
+    std::string line = "";
+    std::fstream srcFile(file_name.c_str());
+
+    if (srcFile.is_open())
+    {
+        while (std::getline(srcFile, line))
+        {
+            result += line + '\n';
+        }
+        srcFile.close();
+    }
+    else
+    {
+        COUT << "file open : failed! " << ENDL;
+    }
+    return (result);
+}
+
 GLuint compileShader(GLuint type, const std::string &sourceCode)
 {
+    GLint status;
+    GLint infoLogLen;
+    GLchar *strInfoLog;
     GLuint shaderObj;
     const char *src = sourceCode.c_str();
 
@@ -117,28 +111,57 @@ GLuint compileShader(GLuint type, const std::string &sourceCode)
     /* compile the shader program */
     glShaderSource(shaderObj, 1, &src, nullptr);
     glCompileShader(shaderObj);
+
+    /* Check for compilation or linking error*/
+    glGetShaderiv(shaderObj, GL_COMPILE_STATUS, &status);             /* get status */
+    if (status == GL_FALSE)
+    {
+        glGetShaderiv(shaderObj, GL_INFO_LOG_LENGTH, &infoLogLen);   /* get err msg len */
+        strInfoLog = new GLchar[infoLogLen + 1];                     /* allocate mem    */
+        glGetShaderInfoLog(shaderObj, infoLogLen, NULL, strInfoLog); /* get error msg   */
+        CERR << "Error! Shader compiler "                            /* print msg       */
+             << type << ": " << strInfoLog
+             << ENDL;     
+        delete [] strInfoLog;                                        /* free memory     */
+    }
     return (shaderObj);
 }
 
-GLuint createShaderProgram(const std::string &vertexShader,
-                           const std::string &fragmentShader)
-{
-    GLuint programObj = glCreateProgram();
-    GLuint vertex_shader = compileShader(GL_VERTEX_SHADER, vertexShader);
-    GLuint fragment_shader = compileShader(GL_FRAGMENT_SHADER, fragmentShader);
 
-    glAttachShader(programObj, vertex_shader);
-    glAttachShader(programObj, fragment_shader);
+GLuint createShaderProgram(const std::string &vertexShaderSrc,
+                           const std::string &fragmentShaderSrc)
+{
+    GLint status;
+    GLint infoLogLen;
+    GLchar *strInfoLog;
+    GLuint programObj = glCreateProgram();
+    GLuint vertex_shader_obj = compileShader(GL_VERTEX_SHADER, vertexShaderSrc);
+    GLuint fragment_shader_obj = compileShader(GL_FRAGMENT_SHADER, fragmentShaderSrc);
+
+    glAttachShader(programObj, vertex_shader_obj);
+    glAttachShader(programObj, fragment_shader_obj);
     glLinkProgram(programObj);
     glValidateProgram(programObj);
+
+    /* Check for compilation or linking error*/
+    glGetProgramiv(programObj, GL_LINK_STATUS, &status);               /* get status */
+    if (status == GL_FALSE)
+    {
+        glGetProgramiv(programObj, GL_INFO_LOG_LENGTH, &infoLogLen);   /* get err msg len */
+        strInfoLog = new GLchar[infoLogLen + 1];                       /* allocate mem    */
+        glGetProgramInfoLog(programObj, infoLogLen, NULL, strInfoLog); /* get error msg   */
+        CERR << "Error! Linker : " << strInfoLog << ENDL;              /* print msg       */
+        delete [] strInfoLog;                                          /* free memory     */
+    }
     return (programObj);
 }
 
 void createGraphicsPipeline(void)
 {
-    COUT << "before: " << g_pipelineShaderProgram << ENDL;
-    g_pipelineShaderProgram = createShaderProgram(g_vertexShaderSrc, g_fragmentShaderSrc);
-    COUT << "After: " << g_pipelineShaderProgram << ENDL;
+    std::string vertexShaderSrc = LoadShaderSrcFile("./shaders/vertex_shader_src.glsl");
+    std::string fragmentShaderSrc = LoadShaderSrcFile("./shaders/fragment_shader_src.glsl");
+
+    g_pipelineShaderProgram = createShaderProgram(vertexShaderSrc, fragmentShaderSrc);
 }
 
 void Init(void)
@@ -185,7 +208,7 @@ void handleInputs(void)
     {
         if (e.type == SDL_QUIT)
         {
-            std::cout << "Exiting application..." << std::endl;
+            std::cout << "\nExiting application..." << std::endl;
             g_Quit = true;
         }
     }
