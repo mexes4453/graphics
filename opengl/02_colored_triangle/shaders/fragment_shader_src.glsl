@@ -1,8 +1,10 @@
 #version 410 core 
 
+smooth in vec4 theColor;
+
 out vec4 color;
 
-void moin()
+void main()
 {
-    color = vec4(1.0f, 0.5f, 0.0f, 1.0f);
+    color = theColor;
 }

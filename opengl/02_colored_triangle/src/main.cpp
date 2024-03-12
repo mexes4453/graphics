@@ -1,4 +1,4 @@
-#include <SDL2/SDL.h>
+    #include <SDL2/SDL.h>
 // #include <GL/gl.h>
 #include "../inc/glad/glad.h"
 #include "../inc/utils.h"
@@ -36,11 +36,14 @@ void getOpenGlVersionInfo(void)
 void VertexSpecification(void)
 {
     /* Created and stored on the CPU */
-    const std::vector<GLfloat> vertexPos = {
+    const std::vector<GLfloat> vertexData = {
         /* x     y     z   */
-        -0.8, -0.8, 0.5, // vertex 1
-        0.8, -0.8, 0.0,  // vertex 2
-        0.0, 0.8, 0.0    // vertex 3
+        -0.8, -0.8, 0.5,  // vertex 1 left
+         0.8, -0.8, 0.0,  // vertex 2 right
+         0.0,  0.8, 0.0,  // vertex 3 top
+         1.0,  0.0, 0.0,  // color of vertex 1 red,
+         0.0,  1.0, 0.0,  // color of vertex 2 green,
+         0.0,  0.0, 1.0,  // color of vertex 3 blue,
     };
 
     /* Generate the vertex array object */
@@ -51,12 +54,13 @@ void VertexSpecification(void)
     glGenBuffers(1, &g_vertexBufferObject);
     glBindBuffer(GL_ARRAY_BUFFER, g_vertexBufferObject);
 
-    /* copy the data (vertexPos)from cpu to gpu (vertexbufferObject)*/
+    /* copy the data (vertexData)from cpu to gpu (vertexbufferObject)*/
     glBufferData(GL_ARRAY_BUFFER,
-                 vertexPos.size() * sizeof(GLfloat),
-                 vertexPos.data(),
+                 vertexData.size() * sizeof(GLfloat),
+                 vertexData.data(),
                  GL_STATIC_DRAW);
-
+    
+    /* Specify the vertex attribute in the vertex array object */
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0,        /* Corresponds to the enabledvertexAttribArray */
                           3,        /* Number of components 3 vertices             */
@@ -65,9 +69,18 @@ void VertexSpecification(void)
                           0,        /* stride                                      */
                           NULL);    /* offset                                      */
 
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1,        /* Corresponds to the enabledvertexAttribArray */
+                          3,        /* Number of components 3 vertices             */
+                          GL_FLOAT, /* type : data type - float                    */
+                          GL_FALSE, /* Is the data normalised                      */
+                          0,        /* stride                                      */
+                          (GLvoid *)36);    /* offset                                      */
+
     /* Disable used objects VAO */
     glBindVertexArray(0);
     glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
 }
 
 std::string LoadShaderSrcFile(const std::string &file_name)
@@ -113,7 +126,7 @@ GLuint compileShader(GLuint type, const std::string &sourceCode)
     glCompileShader(shaderObj);
 
     /* Check for compilation or linking error*/
-    glGetShaderiv(shaderObj, GL_COMPILE_STATUS, &status);             /* get status */
+    glGetShaderiv(shaderObj, GL_COMPILE_STATUS, &status); /* get status */
     if (status == GL_FALSE)
     {
         glGetShaderiv(shaderObj, GL_INFO_LOG_LENGTH, &infoLogLen);   /* get err msg len */
@@ -121,8 +134,8 @@ GLuint compileShader(GLuint type, const std::string &sourceCode)
         glGetShaderInfoLog(shaderObj, infoLogLen, NULL, strInfoLog); /* get error msg   */
         CERR << "Error! Shader compiler "                            /* print msg       */
              << type << ": " << strInfoLog
-             << ENDL;     
-        delete [] strInfoLog;                                        /* free memory     */
+             << ENDL;
+        delete[] strInfoLog; /* free memory     */
     }
     return (shaderObj);
 }
@@ -153,6 +166,9 @@ GLuint createShaderProgram(const std::string &vertexShaderSrc,
         CERR << "Error! Linker : " << strInfoLog << ENDL;              /* print msg       */
         delete [] strInfoLog;                                          /* free memory     */
     }
+    /* detach shader objects from program after linking */
+    glDetachShader(programObj, vertex_shader_obj);
+    glDetachShader(programObj, fragment_shader_obj);
     return (programObj);
 }
 
@@ -220,8 +236,8 @@ void preDraw()
     glDisable(GL_CULL_FACE);
 
     glViewport(0, 0, WIN_WIDTH, WIN_HEIGHT);
-    glClearColor(1.f, 1.f, 0.1f, 1.f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClearColor(0.f, 0.f, 0.f, 1.f);                  /* set color to use for screen view */
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); /* perform screen clear */
 
     glUseProgram(g_pipelineShaderProgram);
 }
