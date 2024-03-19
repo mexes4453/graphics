@@ -12,7 +12,6 @@
     if (!(condition))                                              \
     {                                                              \
         std::cerr << COL_RED << (msg) << COL_DEFAULT << std::endl; \
-        cleanup();\
         exit(EXIT_FAILURE);                                        \
     }
 
