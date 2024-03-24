@@ -23,7 +23,8 @@ GLuint g_vertexArrayObject = 0;  // VAO
 GLuint g_vertexBufferObject = 0; // VBO
 GLuint g_indexBufferObject = 0;  // IBO
 float g_uOffset = -2.4f;          // use of pass offset pos data to uniform var in shaders
-float g_uRotate = 0.01f;          // use of pass rotation offset data to uniform var in shaders
+float g_uRotate = 0.35f;          // use of pass rotation offset data to uniform var in shaders
+float g_uScale = 0.4f;            // use to pass scale factor data to the matrix for shaders
 
 GLuint g_pipelineShaderProgram = 0; // handle to shader program
 
@@ -237,7 +238,7 @@ void Init(void)
 void handleInputs(void)
 {
     float offset = 0.01f;
-    float offsetRotate = 0.11f;
+    float offsetRotate = 0.51f;
     SDL_Event e;
     while (SDL_PollEvent(&e) != 0)
     {
@@ -292,7 +293,12 @@ void preDraw()
     /*-----------------------*/
     /* create the translation matrix to move object */
     glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, g_uOffset));
+
+    /* add the rotation matrix to move object */
     model = glm::rotate(model, glm::radians(g_uRotate), glm::vec3(0.f, 1.0f, 0.f));
+
+    /* add the scale matrix to move object */
+    model = glm::scale(model, glm::vec3(g_uScale, g_uScale, g_uScale));
 
     /* retrieve the location of the uniform variable in the shader */
     u_modelOffsetMatrixLocation = glGetUniformLocation(g_pipelineShaderProgram, "u_ModelMatrix");
